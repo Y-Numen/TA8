@@ -1,0 +1,50 @@
+
+<div align="center">
+
+<select id="suburb_select"></select></div>
+<br>
+<div align="center">
+<h3>The municipality is:</h3>
+<div id="LGA" style="color:yellow;font-size: 300%;font-weight:bold;"></div>
+</div>
+
+
+<script>
+ const notSortedSuburb = Array.from(suburbs);
+    suburbs.sort();
+
+    const suburbSelect = document.getElementById('suburb_select');
+    suburbSelect.innerHTML = "";
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.text = "Please select your suburb";
+    suburbSelect.add(defaultOption);
+
+    for (const i in suburbs) {
+      const option = document.createElement("option");
+      option.value = suburbs[i];
+      option.text = suburbs[i];
+      suburbSelect.add(option);
+    }
+    
+    const selectedSuburb = document.getElementById('suburb_select');
+    const displayLGA = document.getElementById('LGA');
+    
+    selectedSuburb.addEventListener('change', function() {
+        // Get the selected option's text
+        const selected = selectedSuburb.options[selectedSuburb.selectedIndex].value;
+        let correspondingLGA = "";
+        if (selected == ""){
+            correspondingLGA = "";
+        }
+        else{
+        let referIndex = notSortedSuburb.indexOf(selected);
+        console.log(referIndex);
+        correspondingLGA = LGAs[referIndex];
+        }
+        // Update the display element's content
+        displayLGA.textContent = `${correspondingLGA}`;
+    });
+
+
+</script>
