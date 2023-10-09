@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Wage Result</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-light p-5">
+
+<div class="container bg-white rounded p-4 shadow">
+  <h1 class="text-center mb-4">Wage Result</h1>
+
+  <div class="row mt-5">
+    <div class="col-md-6">
+      <div id="chartContainer">
+       <canvas id="wageChart" width="600" height="800"></canvas>
+
+      </div>
+    </div>
+    <div class="col-md-6">
+      <h4 id="topJobsHeader">Recommend Jobs in your industry:</h4>
+      <div id="topJobs">
+        <!-- Top jobs will be listed here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    // Fetch data from localStorage
+    const userWage = parseFloat(localStorage.getItem('userWage'));
+    const selectedCategory = localStorage.getItem('selectedCategory');
+
+    // Fetch wageData from API
+    $.get('https://uniease.me/site3/get_wage_data.php', function (data) {
+      let wageData = {};
+      data.forEach(item => {
+        if (!wageData[item.category]) {
+          wageData[item.category] = item.avg_salary_industry;
+        }
+      });
+
+      // Use wageData inside this block
+      let avgIndustryWage = wageData[selectedCategory] || "$0";
+      avgIndustryWage = parseFloat(avgIndustryWage.replace('$', '')) || 0;
+
+      const lowerBound = avgIndustryWage * 0.5;
+      const upperBound = avgIndustryWage * 1.5;
+
+      if (userWage >= lowerBound && userWage <= upperBound) {
+
+        $.post('https://uniease.me/site3/store_user_wage.php', {
+          category: selectedCategory,
+          wage: userWage
+        }, function (data) {
+          console.log('Data Inserted:', data);
+        });
+      } else {
+        console.log('Data not inserted due to being out of range.');
+      }
+
+      // Continue with fetching average user wage and drawing the chart
+      $.post('https://uniease.me/site3/get_user_wage.php', {category: selectedCategory}, function (data) {
+        let avgUserWage = data.avg_user_wage;
+        if (typeof avgUserWage === 'string') {
+          avgUserWage = parseFloat(avgUserWage.replace('$', ''));
+        } else if (typeof avgUserWage !== 'number') {
+          avgUserWage = 0;
+        }
+
+        if (window.myChart) {
+          window.myChart.destroy();
+        }
+
+        const ctx = document.getElementById('wageChart').getContext('2d');
+        window.myChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Your Wage', 'Average Industry Wage', 'Average User Wage'],
+            datasets: [{
+              label: 'Wage',
+              data: [userWage, avgIndustryWage, avgUserWage],
+              backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)'
+              ],
+              borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        $.get('https://uniease.me/site3/get_recommend_jobs.php', {category: selectedCategory}, function (jobs) {
+          $('#topJobs').empty();
+          jobs.slice(0, 5).forEach(function (job) {
+            $('#topJobs').append(
+              `<div class="job-item">
+                  <h5>${job.company_name}</h5>
+                  <p>Job Title: ${job.job_title}</p>
+                  <p>Salary Offered: ${job.salary_offered}</p>
+                </div>`
+            );
+          });
+        });
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

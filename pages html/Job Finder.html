@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Industry Wage Info</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light p-5">
+<div class="container bg-white rounded p-4 shadow">
+  <h1 class="text-center mb-4">Industry Wage Information</h1>
+
+<div class="form-group">
+  <label for="categorySelect">Select Industry Category:</label>
+  <select id="categorySelect" class="form-control">
+    <option value="" disabled selected>Please Select</option>
+    </select>
+  </div>
+
+  <div class="row mt-5">
+    <div class="col-md-6">
+      <div id="chartContainer">
+        <canvas id="wageChart" width="600" height="600"></canvas>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <h4 id="jobListHeader" style="display: none;">Jobs in Selected Industry:</h4>
+      <div id="jobList">
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  $(document).ready(function() {
+    // Step 1: Fetch all wage data to populate category dropdown
+    let categories = new Set(); // To filter out duplicate categories
+    let wageData = {}; // To store all wage data
+
+    $.get('https://uniease.me/site3/get_wage_data.php', function(data) {
+      wageData = data;
+      data.forEach(item => {
+        categories.add(item.category);
+      });
+
+      // Populate the dropdown with categories
+      categories.forEach(category => {
+        $('#categorySelect').append(new Option(category, category));
+      });
+    });
+
+    // Step 2: Fetch and display data based on selected category
+    $('#categorySelect').change(function() {
+      const selectedCategory = $(this).val();
+
+      // Bar Chart Data
+      const avgSalaryIndustry = parseFloat(wageData.find(item => item.category === selectedCategory).avg_salary_industry.replace('$', ''));
+      const chartData = {
+        labels: ['Average Industry Wage', 'Minimum Wage', 'Average Wage'],
+        datasets: [{
+          label: 'Wage',
+          data: [avgSalaryIndustry, 23.23, 35.5],
+          backgroundColor: ['rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)', 'rgba(75, 192, 192, 0.2)'],
+          borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)'],
+          borderWidth: 1
+        }]
+      };
+
+      // Create the bar chart
+      if (window.myChart) {
+        window.myChart.destroy();
+      }
+      const ctx = document.getElementById('wageChart').getContext('2d');
+      window.myChart = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      // Job Listings
+      $('#jobList').empty();
+      const jobs = wageData.filter(item => item.category === selectedCategory).slice(0, 5);
+      jobs.forEach(job => {
+        $('#jobList').append(
+          `<div class="job-item">
+            <h5>${job.company_name}</h5>
+            <p>Job Title: ${job.job_title}</p>
+            <p>Salary Offered: ${job.salary_offered}</p>
+          </div>`
+        );
+      });
+      $('#jobListHeader').show();
+    });
+  });
+</script>
+</body>
+</html>
